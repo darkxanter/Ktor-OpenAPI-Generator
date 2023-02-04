@@ -30,7 +30,7 @@ class InjectBeforeTest {
     fun testCustomConverter() {
         val uuid = "4a5e1ba7-c6fe-49de-abf9-d94614ea3bb8"
         val key = "key"
-        val expected = UUID.fromString(uuid)
+        val expected: UUID = UUID.fromString(uuid)
         val parse = mapOf(
             key to listOf(uuid)
         )
