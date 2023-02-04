@@ -66,7 +66,7 @@ class BinaryContentTypeParserTest {
                 addHeader(HttpHeaders.Accept, contentType)
                 setBody(bytes)
             }.apply {
-                assertEquals(HttpStatusCode.NotFound, response.status())
+                assertEquals(HttpStatusCode.UnsupportedMediaType, response.status())
             }
 
             println("Test: Bad Accept")
@@ -75,7 +75,7 @@ class BinaryContentTypeParserTest {
                 addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                 setBody(bytes)
             }.apply {
-                assertEquals(HttpStatusCode.NotFound, response.status())
+                assertEquals(HttpStatusCode.BadRequest, response.status())
             }
 
             println("Test: Bad Content-Type")
@@ -84,7 +84,7 @@ class BinaryContentTypeParserTest {
                 addHeader(HttpHeaders.Accept, contentType)
                 setBody(bytes)
             }.apply {
-                assertEquals(HttpStatusCode.NotFound, response.status())
+                assertEquals(HttpStatusCode.UnsupportedMediaType, response.status())
             }
         }
     }

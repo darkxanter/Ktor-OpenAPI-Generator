@@ -7,8 +7,8 @@ import com.papsign.ktor.openapigen.parameters.parsers.converters.primitive.Primi
 import com.papsign.ktor.openapigen.parameters.parsers.converters.primitive.PrimitiveConverterFactory
 import com.papsign.ktor.openapigen.parameters.parsers.testSelector
 import com.papsign.ktor.openapigen.parameters.parsers.testSelectorFails
-import org.junit.After
-import org.junit.Before
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -16,12 +16,12 @@ import kotlin.reflect.KType
 import kotlin.reflect.full.createType
 
 class InjectBeforeTest {
-    @Before
+    @BeforeEach
     fun before() {
         PrimitiveConverterFactory.injectConverterBefore(PrimitiveConverter::class, CustomUuidConverter)
     }
 
-    @After
+    @AfterEach
     fun after() {
         PrimitiveConverterFactory.removeConverter(CustomUuidConverter::class)
     }
@@ -40,13 +40,13 @@ class InjectBeforeTest {
 }
 
 class InjectAfterAndRemoveTest {
-    @Before
+    @BeforeEach
     fun before() {
         PrimitiveConverterFactory.injectConverterAfter(PrimitiveConverter::class, AnyToBooleanConverter)
         PrimitiveConverterFactory.removeConverter(PrimitiveConverter::class)
     }
 
-    @After
+    @AfterEach
     fun after() {
         PrimitiveConverterFactory.injectConverterBefore(AnyToBooleanConverter::class, PrimitiveConverter)
         PrimitiveConverterFactory.removeConverter(AnyToBooleanConverter::class)
