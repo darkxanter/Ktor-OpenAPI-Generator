@@ -9,7 +9,7 @@ import com.papsign.ktor.openapigen.parameters.parsers.testSelector
 import com.papsign.ktor.openapigen.parameters.parsers.testSelectorFails
 import org.junit.After
 import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import java.time.OffsetDateTime
 import java.util.UUID
 import kotlin.reflect.KType

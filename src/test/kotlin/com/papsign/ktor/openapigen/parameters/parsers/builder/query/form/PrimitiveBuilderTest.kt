@@ -3,7 +3,7 @@ package com.papsign.ktor.openapigen.parameters.parsers.builder.query.form
 import com.papsign.ktor.openapigen.parameters.parsers.builders.query.form.FormBuilderFactory
 import com.papsign.ktor.openapigen.parameters.parsers.testSelector
 import com.papsign.ktor.openapigen.parameters.parsers.testSelectorFails
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import java.time.*
 
 class PrimitiveBuilderTest {
