@@ -3,8 +3,10 @@ package com.papsign.ktor.openapigen.content.type.multipart
 import com.papsign.ktor.openapigen.OpenAPIGen
 import com.papsign.ktor.openapigen.OpenAPIGenModuleExtension
 import com.papsign.ktor.openapigen.annotations.mapping.openAPIName
+import com.papsign.ktor.openapigen.classLogger
 import com.papsign.ktor.openapigen.content.type.BodyParser
 import com.papsign.ktor.openapigen.content.type.ContentTypeProvider
+import com.papsign.ktor.openapigen.content.type.multipart.util.TemporaryFileInputStream
 import com.papsign.ktor.openapigen.exceptions.OpenAPIParseException
 import com.papsign.ktor.openapigen.exceptions.assertContent
 import com.papsign.ktor.openapigen.getKType
@@ -23,11 +25,14 @@ import com.papsign.ktor.openapigen.unwrappedType
 import io.ktor.http.ContentType
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
-import io.ktor.http.content.streamProvider
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.routing.RoutingContext
-import io.ktor.util.asStream
+import io.ktor.util.moveToByteArray
+import io.ktor.utils.io.ByteReadChannel
+import io.ktor.utils.io.readAvailable
+import java.io.ByteArrayInputStream
 import java.io.InputStream
+import java.nio.ByteBuffer
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -38,6 +43,9 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.collections.set
+import kotlin.io.path.createTempFile
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.outputStream
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.full.findAnnotation
@@ -47,6 +55,8 @@ import kotlin.reflect.full.withNullability
 import kotlin.reflect.jvm.jvmErasure
 
 object MultipartFormDataContentProvider : BodyParser, OpenAPIGenModuleExtension {
+    private val logger = classLogger()
+    const val IN_MEMORY_FILE_UPLOAD_LIMIT: Int = 65536
 
     override fun <T : Any> getParseableContentTypes(type: KType): List<ContentType> {
         return listOf(ContentType.MultiPart.FormData)
@@ -56,7 +66,6 @@ object MultipartFormDataContentProvider : BodyParser, OpenAPIGenModuleExtension 
         val default: T?,
         val type: KType,
         val clazz: KClass<*>,
-        // val serializer: (T) -> String,
         val parser: (String) -> T,
     )
 
@@ -119,25 +128,32 @@ object MultipartFormDataContentProvider : BodyParser, OpenAPIGenModuleExtension 
 
     override suspend fun <T : Any> parseBody(clazz: KType, request: RoutingContext): T {
         val objectMap = HashMap<String, Any>()
-        request.call.receiveMultipart().forEachPart {
-            val name = it.name
+        request.call.receiveMultipart().forEachPart { part ->
+            val name = part.name
             if (name != null) {
-                when (it) {
+                when (part) {
                     is PartData.FormItem -> {
-                        objectMap[name] = it.value
+                        objectMap[name] = part.value
                     }
 
                     is PartData.FileItem -> {
-                        objectMap[name] = NamedFileInputStream(it.originalFileName, it.contentType, it.streamProvider())
+                        objectMap[name] = NamedFileInputStream(
+                            name = part.originalFileName,
+                            contentType = part.contentType,
+                            inputStream = fileUpload(part.provider()),
+                        )
                     }
 
-                    is PartData.BinaryItem -> {
-                        objectMap[name] = ContentInputStream(it.contentType, it.provider().asStream())
-                    }
+//                    is PartData.BinaryItem -> {
+//                        objectMap[name] = ContentInputStream(it.contentType, it.provider().asStream())
+//                    }
 
-                    else -> {}
+                    else -> {
+                        logger.warn("Unsupported form data type: $part")
+                    }
                 }
             }
+            part.dispose()
         }
 
         @Suppress("UNCHECKED_CAST")
@@ -175,7 +191,6 @@ object MultipartFormDataContentProvider : BodyParser, OpenAPIGenModuleExtension 
             }
         })
     }
-
 
     override fun <T> getMediaType(
         type: KType,
@@ -227,5 +242,50 @@ object MultipartFormDataContentProvider : BodyParser, OpenAPIGenModuleExtension 
                 contentTypes
             )
         )
+    }
+
+    suspend fun fileUpload(readChannel: ByteReadChannel): InputStream {
+        val buffer = ByteBuffer.allocate(IN_MEMORY_FILE_UPLOAD_LIMIT)
+        readChannel.readAvailable(buffer)
+
+        val completeRead = if (buffer.remaining() > 0) {
+            readChannel.readAvailable(buffer) == -1
+        } else {
+            false
+        }
+
+        buffer.flip()
+
+        if (completeRead) {
+            return ByteArrayInputStream(buffer.array(), buffer.arrayOffset(), buffer.remaining())
+        }
+
+        return withTempFile(readChannel, buffer)
+    }
+
+    suspend fun withTempFile(
+        readChannel: ByteReadChannel,
+        buffer: ByteBuffer
+    ): InputStream {
+        val tmp = createTempFile("file-upload", ".tmp")
+
+        try {
+            tmp.outputStream().use { stream ->
+                while (true) {
+                    while (buffer.hasRemaining()) {
+                        stream.write(buffer.moveToByteArray())
+                    }
+                    buffer.clear()
+
+                    if (readChannel.readAvailable(buffer) == -1) break
+                    buffer.flip()
+                }
+            }
+        } catch (cause: Throwable) {
+            tmp.deleteIfExists()
+            throw cause
+        }
+
+        return TemporaryFileInputStream(tmp)
     }
 }
