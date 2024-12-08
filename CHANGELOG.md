@@ -1,3 +1,10 @@
+# 0.8.1
+Infrastructure:
+- Ktor 3.0.2
+- Java 11
+Bugfixes:
+- Fix multipart file uploads
+
 # 0.8.0
 Infrastructure:
 - Kotlin 2.0.21
