@@ -49,8 +49,8 @@ abstract class OpenAPIRoute<T : OpenAPIRoute<T>>(val ktorRoute: Route, val provi
             it.configure(apiGen, provider)
         }
 
-        val BHandler = ValidationHandler.build(bodyType)
-        val PHandler = ValidationHandler.build(paramsType)
+        val bodyHandler = ValidationHandler.build(bodyType)
+        val paramsHandler = ValidationHandler.build(paramsType)
 
         ktorRoute.apply {
             getAcceptMap<R>(responseType).let {
@@ -63,7 +63,7 @@ abstract class OpenAPIRoute<T : OpenAPIRoute<T>>(val ktorRoute: Route, val provi
                             @Suppress("UNCHECKED_CAST")
                             val params: P = if (paramsType.classifier == Unit::class) Unit as P else parameterHandler.parse(call.parameters, call.request.headers)
                             @Suppress("UNCHECKED_CAST")
-                            pass(this, responder, PHandler.handle(params), Unit as B)
+                            pass(this, responder, paramsHandler.handle(params), Unit as B)
                         }
                     } else {
                         getContentTypesMap<B>(bodyType).forEach { (contentType, parsers) ->
@@ -72,7 +72,7 @@ abstract class OpenAPIRoute<T : OpenAPIRoute<T>>(val ktorRoute: Route, val provi
                                     val receive: B = parsers.getBodyParser(call.request.contentType()).parseBody(bodyType, this)
                                     @Suppress("UNCHECKED_CAST")
                                     val params: P = if (paramsType.classifier == Unit::class) Unit as P else parameterHandler.parse(call.parameters, call.request.headers)
-                                    pass(this, responder, PHandler.handle(params), BHandler.handle(receive))
+                                    pass(this, responder, paramsHandler.handle(params), bodyHandler.handle(receive))
                                 }
                             }
                         }

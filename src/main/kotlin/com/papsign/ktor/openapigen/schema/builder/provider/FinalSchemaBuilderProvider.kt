@@ -47,16 +47,14 @@ object FinalSchemaBuilderProvider: FinalSchemaBuilderProviderModule, OpenAPIGenM
 
     private class Builder(builders: List<SchemaBuilder>) : FinalSchemaBuilder {
 
-        private val map = TreeMap<KType, SchemaBuilder>(
-            Comparator { a, b ->
-                when {
-                    a.isSubtypeOf(b) -> -1
-                    b.isSubtypeOf(a) -> 1
-                    a == b -> 0
-                    else -> 1
-                }
+        private val map = TreeMap<KType, SchemaBuilder> { a, b ->
+            when {
+                a.isSubtypeOf(b) -> -1
+                b.isSubtypeOf(a) -> 1
+                a == b -> 0
+                else -> 1
             }
-        ).apply {
+        }.apply {
             putAll(builders.groupBy { it.superType }.map { (key, value) ->
                 val last = value.last()
                 if (value.size > 1) log.warn("Two builder detected for type $key, selecting last: $last")

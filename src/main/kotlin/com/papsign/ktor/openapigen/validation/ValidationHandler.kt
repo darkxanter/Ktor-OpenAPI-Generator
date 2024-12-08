@@ -315,7 +315,7 @@ class ValidationHandler private constructor(
 
         /**
          * needed because a type is equal to another no matter the annotations
-         * @param annotations, be careful that it contains everything, the code may fully rely on it
+         * @param typeAnnotation, be careful that it contains everything, the code may fully rely on it
          */
         data class AnnotatedKType(
             val type: KType,

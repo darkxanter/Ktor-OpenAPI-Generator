@@ -7,8 +7,6 @@ import com.papsign.ktor.openapigen.route.OpenAPIRoute
 import com.papsign.ktor.openapigen.route.response.AuthResponseContextImpl
 import com.papsign.ktor.openapigen.route.response.OpenAPIPipelineAuthContext
 import io.ktor.server.routing.Route
-import io.ktor.util.reflect.TypeInfo
-import io.ktor.util.reflect.typeInfo
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 
